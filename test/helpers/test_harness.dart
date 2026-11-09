@@ -10,12 +10,17 @@ import 'package:quickkart/mock_server/mock_server.dart';
 class TestHarness {
   TestHarness._(this.store, this.server, this.container);
 
-  factory TestHarness({KeyValueStore? store, MockServer? server}) {
+  factory TestHarness({
+    KeyValueStore? store,
+    MockServer? server,
+    List<Override> overrides = const [],
+  }) {
     final s = store ?? InMemoryKeyValueStore();
     final srv = server ?? MockServer.inMemory();
     final container = ProviderContainer(overrides: [
       keyValueStoreProvider.overrideWithValue(s),
       mockServerProvider.overrideWithValue(srv),
+      ...overrides,
     ]);
     return TestHarness._(s, srv, container);
   }
@@ -25,6 +30,9 @@ class TestHarness {
   final ProviderContainer container;
 
   T read<T>(ProviderListenable<T> provider) => container.read(provider);
+
+  void listen<T>(ProviderListenable<T> provider) =>
+      container.listen<T>(provider, (_, __) {});
 
   /// Simulates an app restart: same device storage, same server, fresh
   /// in-memory app state.
