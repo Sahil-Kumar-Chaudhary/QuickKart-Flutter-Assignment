@@ -5,7 +5,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quickkart/core/providers.dart';
-import 'package:quickkart/features/app_config/data/config_repository.dart';
 import 'package:quickkart/features/app_config/domain/app_config.dart';
 import 'package:quickkart/features/app_config/presentation/app_config_controller.dart';
 
@@ -40,11 +39,17 @@ void main() {
   });
 
   test('consecutive publishes keep up (last one wins)', () async {
-    h.server.publishConfig({'delivery_fee_paise': 1000});
-    await settle();
-    h.server.publishConfig({'delivery_fee_paise': 3000});
+    // The app always watches config from the first frame; mirror that here
+    // so the subscription exists before any publish.
+    h.read(appConfigControllerProvider);
     await settle();
 
+    h.server.publishConfig({'delivery_fee_paise': 1000});
+    await settle();
+    expect(h.read(appConfigControllerProvider).deliveryFeePaise, 1000);
+
+    h.server.publishConfig({'delivery_fee_paise': 3000});
+    await settle();
     expect(h.read(appConfigControllerProvider).deliveryFeePaise, 3000);
   });
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quickkart/core/providers.dart';
+import 'package:quickkart/features/app_config/presentation/app_config_controller.dart';
 import 'package:quickkart/features/catalog/domain/product.dart';
 import 'package:quickkart/features/catalog/presentation/category_screen.dart';
 import 'package:quickkart/mock_server/mock_server.dart';
@@ -22,6 +23,17 @@ void main() {
     );
     addTearDown(container.dispose);
 
+    final before = server.configListenerCount;
+
+    // Warm the app-level config listener (AppConfigController keeps a
+    // permanent subscription by design since Feature 2) so this test only
+    // measures the screen's own listener.
+    container.read(appConfigControllerProvider);
+    await tester.pumpAndSettle();
+    final baseline = server.configListenerCount;
+    expect(baseline, before + 1,
+        reason: 'the app-level listener must be active');
+
     Widget buildApp() => UncontrolledProviderScope(
           container: container,
           child: MaterialApp(
@@ -38,7 +50,7 @@ void main() {
     await tester.pumpWidget(buildApp());
     expect(
       server.configListenerCount,
-      1,
+      baseline + 1,
       reason: 'the screen should subscribe while it is visible',
     );
 
@@ -47,8 +59,9 @@ void main() {
 
     expect(
       server.configListenerCount,
-      0,
-      reason: 'leaving the screen must cancel the config subscription',
+      baseline,
+      reason: 'leaving the screen must cancel the config subscription '
+          '(the app-level listener stays)',
     );
   });
 }
