@@ -59,6 +59,19 @@
 - **Test:** `test/bugs/money_precision_test.dart` → `19.99 becomes 1999 paise`, `79.99 becomes 7999 paise`
 - **Commits:** test `4128187` → fix `050bf3e`
 
+---
+
+## BUG-5: Displayed price drops the paise
+
+- **Symptom:** A cart line priced at ₹19.99 renders as ₹19 while totals are charged in paise.
+- **Steps to reproduce:**
+  1. Add any product priced at 1999 paise.
+  2. Read its formatted price.
+- **Root cause:** `formatMoney()` did `paise ~/ 100` and never rendered the remainder.
+- **Fix:** Render the paise remainder when it is non-zero, zero-padded to two digits, and omit `.00` for whole rupees.
+- **Test:** `test/bugs/money_display_test.dart` → `1999 paise is shown as ₹19.99`, `1950 paise is shown as ₹19.50`, `whole rupees do not show .00`
+- **Commits:** test `bffe23f` → fix `6099d42`
+
 <!-- Copy the block above for every bug you find. -->
 
 ---
