@@ -38,6 +38,6 @@ class OrderTrackingRepository {
   }
 }
 
-final ordersProvider = FutureProvider<List<Order>>(
+final ordersProvider = FutureProvider.autoDispose<List<Order>>(
   (ref) => ref.watch(orderTrackingRepositoryProvider).getOrders(),
 );
