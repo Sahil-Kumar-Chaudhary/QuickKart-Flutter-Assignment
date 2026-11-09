@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quickkart/core/providers.dart';
-import 'package:quickkart/core/storage/key_value_store.dart';
 import 'package:quickkart/features/catalog/data/catalog_repository.dart';
 import 'package:quickkart/features/search/search_screen.dart';
 import 'package:quickkart/features/search/search_controller.dart';
@@ -28,6 +27,8 @@ void main() {
     };
 
     final notifier = h.read(searchControllerProvider.notifier);
+    // Simulate a screen listening to the search state, just like the real UI.
+    h.container.listen(searchControllerProvider, (_, __) {});
     final expected = await h
         .read(catalogRepositoryProvider)
         .search('chi'); // fast fetch, not delayed by the override.

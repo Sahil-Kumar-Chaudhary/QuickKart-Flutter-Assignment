@@ -20,29 +20,41 @@ class SearchState {
 }
 
 final searchControllerProvider =
-    NotifierProvider<ProductSearchController, SearchState>(
+    NotifierProvider.autoDispose<ProductSearchController, SearchState>(
   ProductSearchController.new,
 );
 
-class ProductSearchController extends Notifier<SearchState> {
+class ProductSearchController extends AutoDisposeNotifier<SearchState> {
+  /// Monotonic token to detect that another keystroke has replaced this
+  /// request before its response arrives.
+  int _requestToken = 0;
+
   @override
   SearchState build() => const SearchState();
 
   /// Called on every keystroke of the search field.
   Future<void> search(String query) async {
-    if (query.trim().isEmpty) {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      _requestToken++;
       state = const SearchState();
       return;
     }
+    final token = ++_requestToken;
     state = SearchState(query: query, results: state.results, isLoading: true);
     try {
       final results =
-          await ref.read(catalogRepositoryProvider).search(query.trim());
+          await ref.read(catalogRepositoryProvider).search(trimmed);
+      if (token != _requestToken) return;
       state = SearchState(query: query, results: results);
     } on ApiException catch (e) {
+      if (token != _requestToken) return;
       state = SearchState(query: query, errorMessage: e.message);
     }
   }
 
-  void clear() => state = const SearchState();
+  void clear() {
+    _requestToken++;
+    state = const SearchState();
+  }
 }

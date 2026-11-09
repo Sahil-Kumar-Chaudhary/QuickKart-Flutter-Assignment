@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,9 +17,23 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _textController = TextEditingController();
+  ProviderContainer? _container;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _container ??= ProviderScope.containerOf(context);
+  }
 
   @override
   void dispose() {
+    // Reset state after the widget is unmounted so reopening isn't stale.
+    final container = _container;
+    if (container != null) {
+      scheduleMicrotask(
+        () => container.read(searchControllerProvider.notifier).clear(),
+      );
+    }
     _textController.dispose();
     super.dispose();
   }
