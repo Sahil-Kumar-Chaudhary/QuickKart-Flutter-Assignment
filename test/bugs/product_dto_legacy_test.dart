@@ -2,7 +2,6 @@
 // `mrp: null` and a string `stock`. They must not crash the catalog.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quickkart/features/catalog/data/product_dto.dart';
-import 'package:quickkart/features/catalog/domain/product.dart';
 
 void main() {
   test('a legacy product with mrp null and a string stock is parsed', () {
