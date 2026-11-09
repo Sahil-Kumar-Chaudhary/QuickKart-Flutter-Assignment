@@ -41,37 +41,34 @@ void main() {
 
   test('orders fetched after placing are not stale (QK-102)', () async {
     final repository = h.read(orderTrackingRepositoryProvider);
-    await repository.getOrders();
+    final before = await repository.getOrders();
+    expect(before, isEmpty, reason: 'test starts with no server orders');
 
     final banana = h.server.product('fruits-01');
-    final cart = Cart(lines: [
-      CartLine(
-        productId: banana.id,
-        name: banana.name,
-        emoji: '🍌',
-        unit: '6 pcs',
-        unitPricePaise: banana.pricePaise,
-        quantity: 1,
-        maxPerOrder: banana.maxPerOrder,
-      ),
-    ]);
+    final cart = Cart(
+      lines: [
+        CartLine(
+          productId: banana.id,
+          name: banana.name,
+          emoji: '🍌',
+          unit: '6 pcs',
+          unitPricePaise: banana.pricePaise,
+          quantity: 1,
+          maxPerOrder: banana.maxPerOrder,
+        ),
+      ],
+    );
 
-    await repository.orderApi.placeOrder(
+    final placed = await repository.orderApi.placeOrder(
       cart,
       CartPricing.compute(cart, AppConfig.defaults()),
     );
 
-    final orders = await repository.getOrders();
+    final after = await repository.getOrders();
     expect(
-      orders,
-      anyElement(
-        (o) => o.items.any(
-          (item) =>
-              item.productId == banana.id && item.unitPricePaise ==
-              banana.pricePaise,
-        ),
-      ),
-      reason: 'the order placed a moment ago must be visible immediately',
+      after.any((o) => o.id == placed.id),
+      isTrue,
+      reason: 'fresh GET /orders must include the newly created order',
     );
   });
 

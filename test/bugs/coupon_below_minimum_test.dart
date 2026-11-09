@@ -33,9 +33,10 @@ void main() {
         ),
       ],
       coupon: Coupon(
-        code: 'FLAT50',
-        type: CouponType.flat,
-        value: 5000,
+        code: 'SAVE10',
+        type: CouponType.percent,
+        value: 10,
+        maxDiscountPaise: 7500,
         minOrderPaise: 19900,
         expiresAt: DateTime.now().toUtc().add(const Duration(days: 30)),
       ),
@@ -48,11 +49,23 @@ void main() {
 
     // The same cart above the minimum still sends the coupon.
     final aboveMin = Cart(
-      lines: cart.lines,
+      lines: [
+        ...cart.lines,
+        CartLine(
+          productId: chicken.id,
+          name: chicken.name,
+          emoji: '🍌',
+          unit: '6 pcs',
+          unitPricePaise: chicken.pricePaise,
+          quantity: 5,
+          maxPerOrder: chicken.maxPerOrder,
+        ),
+      ],
       coupon: Coupon(
-        code: 'FLAT50',
-        type: CouponType.flat,
-        value: 5000,
+        code: 'SAVE10',
+        type: CouponType.percent,
+        value: 10,
+        maxDiscountPaise: 7500,
         minOrderPaise: 19900,
         expiresAt: DateTime.now().toUtc().add(const Duration(days: 30)),
       ),
