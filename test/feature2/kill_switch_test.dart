@@ -68,9 +68,9 @@ void main() {
       findsOneWidget,
       reason: 'the configured message is shown, not a generic error',
     );
-    // Browsing still works: the category rail and products render.
-    expect(find.text('All products'), findsOneWidget);
-    expect(find.byIcon(Icons.bug_report_outlined), findsOneWidget);
+    // Browsing still works: the search field and the category rail render.
+    expect(find.byIcon(Icons.search), findsOneWidget);
+    expect(find.text('Fruits & Veggies'), findsOneWidget);
   });
 
   testWidgets('home shows nothing special while the store is open',
