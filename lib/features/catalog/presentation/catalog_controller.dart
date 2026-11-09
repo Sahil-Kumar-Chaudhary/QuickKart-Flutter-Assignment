@@ -95,13 +95,25 @@ class CatalogController extends FamilyNotifier<CatalogState, String> {
 
   /// Loads the next page. Called by the UI when the user scrolls near the
   /// end of the list.
+  String? _lastRequestedCursor;
+
+  /// Loads the next page. Called by the UI when the user scrolls near the
+  /// end of the list.
   Future<void> loadMore() async {
-    if (!state.hasMore) return;
+    if (!state.hasMore ||
+        state.isLoadingMore ||
+        state.isLoadingFirstPage ||
+        state.isRefreshing) {
+      return;
+    }
+    final cursor = state.nextCursor;
+    if (cursor == null || cursor == _lastRequestedCursor) return;
+    _lastRequestedCursor = cursor;
     state = state.copyWith(isLoadingMore: true, clearError: true);
     try {
       final page = await _repo.getPage(
         categoryId: arg,
-        cursor: state.nextCursor,
+        cursor: cursor,
         limit: pageSize,
       );
       state = state.copyWith(
@@ -113,6 +125,7 @@ class CatalogController extends FamilyNotifier<CatalogState, String> {
         fromCache: state.fromCache || page.fromCache,
       );
     } on ApiException catch (e) {
+      _lastRequestedCursor = null;
       state = state.copyWith(isLoadingMore: false, errorMessage: e.message);
     }
   }
