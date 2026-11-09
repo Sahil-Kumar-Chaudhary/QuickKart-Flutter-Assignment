@@ -10,7 +10,7 @@ import 'package:quickkart/mock_server/mock_server.dart';
 class TestHarness {
   TestHarness._(this.store, this.server, this.container);
 
-  factory TestHarness({InMemoryKeyValueStore? store, MockServer? server}) {
+  factory TestHarness({KeyValueStore? store, MockServer? server}) {
     final s = store ?? InMemoryKeyValueStore();
     final srv = server ?? MockServer.inMemory();
     final container = ProviderContainer(overrides: [
@@ -20,7 +20,7 @@ class TestHarness {
     return TestHarness._(s, srv, container);
   }
 
-  final InMemoryKeyValueStore store;
+  final KeyValueStore store;
   final MockServer server;
   final ProviderContainer container;
 
