@@ -45,6 +45,20 @@
 - **Test:** `test/bugs/orders_after_checkout_test.dart` → `ordersProvider refreshes after a successful checkout`
 - **Commits:** test `93bff2b` → fix `7fc1906`
 
+---
+
+## BUG-4: ₹19.99 is stored as 1998 paise
+
+- **Symptom:** Products with paise can charge/display a different amount than the server expects, often as `PRICE_CHANGED` at checkout.
+- **Steps to reproduce:**
+  1. Load the tomato product (`19.99`).
+  2. Convert it to paise.
+  3. Compare with the server price.
+- **Root cause:** `rupeesToPaise()` used `.toInt()`, truncating `19.99 * 100 = 1998.999...` to `1998`.
+- **Fix:** Round the converted value to the nearest whole paisa.
+- **Test:** `test/bugs/money_precision_test.dart` → `19.99 becomes 1999 paise`, `79.99 becomes 7999 paise`
+- **Commits:** test `4128187` → fix `050bf3e`
+
 <!-- Copy the block above for every bug you find. -->
 
 ---
