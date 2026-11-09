@@ -22,6 +22,10 @@
 ## BUG-2: Prices, orders and config stay stale until restart (QK-102)
 
 - **Symptom:** Pull-to-refresh keeps an old price until the app is killed and reopened. Orders placed a moment ago are not visible. Published config can also remain stale.
+- **Steps to reproduce:**
+  1. Load a catalog page / order list / config.
+  2. Change the server price, place an order or publish config.
+  3. Repeat the GET.
 - **Root cause:** `ApiClient` stored every successful `GET` response in an in-process cache and served it for 10 minutes before reaching the transport. Catalog, order and config reads all shared this stale cache.
 - **Fix:** Remove `ApiClient`'s response cache. Freshness is now owned by each repository. The catalog still has its explicit offline cache; no hidden network cache can override fresh reads.
 - **Test:** `test/bugs/stale_get_cache_test.dart` → `a changed price is returned by a fresh catalog GET (QK-102)`, `orders fetched after placing are not stale (QK-102)`, `published config is returned by a fresh config GET (QK-102)`
