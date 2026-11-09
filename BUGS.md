@@ -33,7 +33,17 @@
 
 ---
 
-## BUG-3: …
+## BUG-3: My Orders does not show a just-placed order
+
+- **Symptom:** After checkout, the order list can still show the previous orders. It only catches up later.
+- **Steps to reproduce:**
+  1. Open My Orders.
+  2. Place an order.
+  3. Read `ordersProvider` again.
+- **Root cause:** `ordersProvider` was a long-lived `FutureProvider` and was not invalidated by checkout, so its first Future could remain in memory.
+- **Fix:** Make `ordersProvider` autoDispose and invalidate it after a successful checkout.
+- **Test:** `test/bugs/orders_after_checkout_test.dart` → `ordersProvider refreshes after a successful checkout`
+- **Commits:** test `93bff2b` → fix `7fc1906`
 
 <!-- Copy the block above for every bug you find. -->
 
