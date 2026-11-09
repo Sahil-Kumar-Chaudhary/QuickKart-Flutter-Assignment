@@ -9,15 +9,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quickkart/core/providers.dart';
 import 'package:quickkart/core/storage/key_value_store.dart';
+import 'package:quickkart/features/app_config/domain/app_config.dart';
 import 'package:quickkart/features/app_config/presentation/app_config_controller.dart';
 import 'package:quickkart/features/app_config/presentation/update_gate.dart';
 import 'package:quickkart/mock_server/mock_server.dart';
 
 Widget _app(
   ProviderContainer container,
-  MockServer server, {
-  String appVersion = '1.4.0',
-}) =>
+  MockServer server,
+) =>
     UncontrolledProviderScope(
       container: container,
       child: MaterialApp(
@@ -29,12 +29,20 @@ Widget _app(
       ),
     );
 
-ProviderContainer _container(MockServer server, {KeyValueStore? store}) =>
-    ProviderContainer(overrides: [
-      keyValueStoreProvider.overrideWithValue(store ?? InMemoryKeyValueStore()),
-      mockServerProvider.overrideWithValue(server),
-      appVersionProvider.overrideWithValue('1.4.0'),
-    ]);
+ProviderContainer _container(MockServer server, {KeyValueStore? store}) {
+  final container = ProviderContainer(overrides: [
+    keyValueStoreProvider.overrideWithValue(store ?? InMemoryKeyValueStore()),
+    mockServerProvider.overrideWithValue(server),
+    appVersionProvider.overrideWithValue('1.4.0'),
+  ]);
+  // main.dart hydrates the boot config before the first frame; mirror that
+  // so publishes made before pumping are visible (a live-config stream
+  // does not replay past events to late subscribers).
+  container
+      .read(appConfigControllerProvider.notifier)
+      .hydrate(AppConfig.fromValues(server.configValues));
+  return container;
+}
 
 void main() {
   testWidgets('required gate blocks the app full screen', (tester) async {
@@ -179,3 +187,4 @@ void main() {
     expect(find.text('Update required'), findsNothing);
   });
 }
+
