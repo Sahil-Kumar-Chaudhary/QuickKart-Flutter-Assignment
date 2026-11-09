@@ -152,6 +152,20 @@
 - **Test:** `test/bugs/search_reset_race_test.dart` → `a slow earlier search never overwrites a newer one`, `search state is fresh after reopening the screen`
 - **Commits:** test `28d1347` → fix `dc86d8f`
 
+---
+
+## BUG-12: Category screen leaks a config listener
+
+- **Symptom:** Leaving CategoryScreen leaves a live subscription on the config stream; repeated open/close keeps accumulating a listener and can cause `setState` after dispose.
+- **Steps to reproduce:**
+  1. Open CategoryScreen.
+  2. Leave it.
+  3. Run an in-app Dev Tools "config listener count" (or refresh config).
+- **Root cause:** `_CategoryScreenState.initState().listen()` call was never cancelled in `dispose()`. Since `_freeDeliveryThresholdPaise` uses `setState`, a late update may also throw.
+- **Fix:** Cancel every `_subscriptions` stream after the widget is disposed and guard `setState` with `mounted`.
+- **Test:** `test/bugs/category_screen_leak_test.dart` → `category screen detaches config listener on dispose`
+- **Commits:** test `4d8837c` → fix `2421533`
+
 <!-- Copy the block above for every bug you find. -->
 
 ---
