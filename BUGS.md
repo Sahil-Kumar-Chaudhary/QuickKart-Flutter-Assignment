@@ -5,16 +5,17 @@
 
 ---
 
-## BUG-1: <short title> (QK-101)
+## BUG-1: Cart changes disappear after restarting (QK-101)
 
-- **Symptom:**
+- **Symptom:** A decrement, line removal or coupon removal comes back after the app is killed and reopened. The badge on the home screen shows the old cart total.
 - **Steps to reproduce:**
-  1.
-  2.
-- **Root cause:** (file / function, 2–4 lines)
-- **Fix:**
-- **Test:** `test/...` → `test name`
-- **Commits:** test `<sha>` → fix `<sha>`
+  1. Put milk and chips in the cart and apply a coupon.
+  2. Reduce milk, delete chips and remove the coupon.
+  3. Fully restart the app (not hot reload).
+- **Root cause:** `CartController.decrement()`, `remove()` and `removeCoupon()` changed only the in-memory `state`. They never called `CartStorage.save()`, so `cart.v1` still held the pre-mutation cart when the app restarted.
+- **Fix:** Compute the new immutable cart, call `_storage.save(updated)`, and only then publish it to Riverpod state. This keeps the existing public methods and architecture unchanged.
+- **Test:** `test/bugs/cart_persistence_test.dart` → `decrement survives an app restart (QK-101)`, `line removal survives an app restart (QK-101)`, `coupon removal survives an app restart (QK-101)`
+- **Commits:** test `9d1c0b8` → fix `ad9897f`
 
 ---
 
