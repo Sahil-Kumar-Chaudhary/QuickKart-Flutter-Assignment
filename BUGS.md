@@ -139,6 +139,19 @@
 - **Test:** `test/bugs/load_more_guard_test.dart` → `two simultaneous loadMore calls fetch the page once`
 - **Commits:** test `82db5d9` → fix `fce842e`
 
+---
+
+## BUG-11: Search results and query go stale
+
+- **Symptom:** Two quick search keystrokes end with the older request overwriting the newer one. After leaving Search and returning, the previous query/results are still displayed.
+- **Steps to reproduce:**
+  1. Open Search, type `milk`, then quickly change the text to `chi`.
+  2. Read the controller state and reopen the screen.
+- **Root cause:** `searchControllerProvider` was a long-lived `Notifier` and each `search()` wrote the newest response regardless of the current query.
+- **Fix:** Track request tokens in the controller, make the provider autoDispose, and have the screen reset the state when it unmounts.
+- **Test:** `test/bugs/search_reset_race_test.dart` → `a slow earlier search never overwrites a newer one`, `search state is fresh after reopening the screen`
+- **Commits:** test `28d1347` → fix `dc86d8f`
+
 <!-- Copy the block above for every bug you find. -->
 
 ---
