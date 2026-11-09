@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
+import '../../app_config/presentation/app_config_controller.dart';
 import '../../cart/presentation/cart_badge_button.dart';
 import '../../dev_tools/dev_tools_screen.dart';
 import '../../orders/presentation/orders_screen.dart';
@@ -17,6 +18,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final storeName = ref.watch(mockServerProvider).storeName;
+    final config = ref.watch(appConfigControllerProvider);
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -46,41 +48,73 @@ class HomeScreen extends ConsumerWidget {
           const CartBadgeButton(),
         ],
       ),
-      body: PaginatedCatalogView(
-        categoryId: kAllProductsCategory,
-        headerSlivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const SearchScreen()),
-                ),
-                child: InputDecorator(
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.search),
-                    hintText: 'Search for products',
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Search "milk", "chips"…',
-                      style: TextStyle(color: Colors.grey)),
+      body: Column(
+        children: [
+          // Kill switch: browsable, but nobody may pretend the store is
+          // taking orders right now.
+          if (!config.storeOpen)
+            Material(
+              color: Theme.of(context).colorScheme.errorContainer,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.storefront),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Text(config.storeClosedMessage,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ),
-          const SliverToBoxAdapter(child: _CategoriesRow()),
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Text('All products',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Expanded(
+            child: PaginatedCatalogView(
+              categoryId: kAllProductsCategory,
+              headerSlivers: _headerSlivers(context),
             ),
           ),
         ],
       ),
     );
+  }
+
+  List<Widget> _headerSlivers(BuildContext context) {
+    return [
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const SearchScreen()),
+            ),
+            child: InputDecorator(
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                hintText: 'Search for products',
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Search "milk", "chips"…',
+                  style: TextStyle(color: Colors.grey)),
+            ),
+          ),
+        ),
+      ),
+      const SliverToBoxAdapter(child: _CategoriesRow()),
+      const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Text('All products',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        ),
+      ),
+    ];
   }
 }
 

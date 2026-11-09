@@ -55,6 +55,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           : ListView(
               padding: const EdgeInsets.all(12),
               children: [
+                // Kill switch: prominent, live, non-blocking (browsing is
+                // allowed; the place-order button is dead while closed).
+                if (!config.storeOpen)
+                  _ClosedStoreBanner(message: config.storeClosedMessage),
                 if (review.isChecking)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 8),
@@ -265,6 +269,35 @@ class _BillDetails extends StatelessWidget {
   }
 }
 
+class _ClosedStoreBanner extends StatelessWidget {
+  const _ClosedStoreBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Colors.red.shade50,
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            const Icon(Icons.storefront, color: Colors.red),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _CartReviewBanner extends ConsumerWidget {
   const _CartReviewBanner({required this.review});
 
@@ -350,15 +383,20 @@ class _PlaceOrderBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final placing = ref
         .watch(checkoutControllerProvider.select((s) => s.isPlacingOrder));
+    final config = ref.watch(appConfigControllerProvider);
+    final closed = !config.storeOpen;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: FilledButton(
           style: FilledButton.styleFrom(
             minimumSize: const Size.fromHeight(52),
-            backgroundColor: Colors.green.shade800,
+            backgroundColor:
+                closed ? Colors.grey.shade600 : Colors.green.shade800,
           ),
-          onPressed: () => _placeOrder(context, ref),
+          // Checkout must be impossible while the store is closed - dead
+          // button (the reconciler-driven checkout failure is the backstop).
+          onPressed: closed ? null : () => _placeOrder(context, ref),
           child: Row(
             children: [
               Text(formatMoney(totalPaise),
