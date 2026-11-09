@@ -26,7 +26,9 @@ class OrderApi {
             'unitPricePaise': l.unitPricePaise,
           }
       ],
-      'couponCode': cart.coupon?.code,
+      'couponCode': cart.coupon == null || pricing.discountPaise <= 0
+          ? null
+          : cart.coupon?.code,
       'expectedTotalPaise': pricing.totalPaise,
     }) as Map<String, dynamic>;
     return Order.fromJson(json);
