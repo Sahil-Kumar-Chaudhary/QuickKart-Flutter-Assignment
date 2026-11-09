@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,18 +10,34 @@ import '../../catalog/presentation/widgets/product_card.dart';
 import '../../checkout/application/checkout_controller.dart';
 import '../../checkout/presentation/order_success_screen.dart';
 import '../application/cart_controller.dart';
+import '../application/cart_review_controller.dart';
 import '../data/coupon_api.dart';
 import '../domain/cart.dart';
 import '../domain/cart_pricing.dart';
 
-class CartScreen extends ConsumerWidget {
+class CartScreen extends ConsumerStatefulWidget {
   const CartScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends ConsumerState<CartScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Reconcile the cart with the server every time it is shown, so the
+    // user sees (and must acknowledge) anything that changed while they
+    // were away (Feature 1). Deferred so it never mutates state mid-build.
+    scheduleMicrotask(() => ref.read(cartReviewProvider.notifier).check());
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final cart = ref.watch(cartControllerProvider);
     final config = ref.watch(appConfigControllerProvider);
     final pricing = CartPricing.compute(cart, config);
+    final review = ref.watch(cartReviewProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('My cart')),
@@ -37,6 +55,12 @@ class CartScreen extends ConsumerWidget {
           : ListView(
               padding: const EdgeInsets.all(12),
               children: [
+                if (review.isChecking)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: LinearProgressIndicator(minHeight: 2),
+                  ),
+                if (review.hasPendingReview) _CartReviewBanner(review: review),
                 if (pricing.amountForFreeDeliveryPaise > 0)
                   Card(
                     color: Colors.green.shade50,
@@ -241,6 +265,58 @@ class _BillDetails extends StatelessWidget {
   }
 }
 
+class _CartReviewBanner extends ConsumerWidget {
+  const _CartReviewBanner({required this.review});
+
+  final CartReviewState review;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Card(
+      color: Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.35),
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Price & availability changed',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Since you added these items the store has changed. '
+              'Please check before ordering.',
+              style: TextStyle(fontSize: 12.5),
+            ),
+            const SizedBox(height: 8),
+            for (final change in review.changes)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, size: 16),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(change)),
+                  ],
+                ),
+              ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.tonal(
+                onPressed: () =>
+                    ref.read(cartReviewProvider.notifier).acknowledge(),
+                child: const Text('Got it'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _PlaceOrderBar extends ConsumerWidget {
   const _PlaceOrderBar({required this.totalPaise});
 
@@ -249,16 +325,21 @@ class _PlaceOrderBar extends ConsumerWidget {
   Future<void> _placeOrder(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    final previousCart = ref.read(cartControllerProvider);
     final result =
         await ref.read(checkoutControllerProvider.notifier).placeOrder();
     switch (result) {
       case CheckoutSuccess(:final order):
+        ref.read(cartReviewProvider.notifier).acknowledge();
         navigator.pushReplacement(MaterialPageRoute<void>(
           builder: (_) => OrderSuccessScreen(order: order),
         ));
-      case CheckoutNeedsReview():
+      case CheckoutNeedsReview(:final reconciliation):
+        ref
+            .read(cartReviewProvider.notifier)
+            .showChanges(reconciliation, previousCart);
         messenger.showSnackBar(const SnackBar(
-          content: Text('Your cart was updated. Please review it.'),
+          content: Text('Your cart changed. Please review it.'),
         ));
       case CheckoutFailure(:final message):
         messenger.showSnackBar(SnackBar(content: Text(message)));

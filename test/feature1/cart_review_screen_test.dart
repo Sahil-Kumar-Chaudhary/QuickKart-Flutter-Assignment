@@ -5,11 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quickkart/core/providers.dart';
+import 'package:quickkart/core/utils/money.dart' show formatMoney;
 import 'package:quickkart/core/storage/key_value_store.dart';
-import 'package:quickkart/core/utils/money.dart';
 import 'package:quickkart/features/cart/application/cart_controller.dart';
 import 'package:quickkart/features/cart/domain/cart.dart';
-import 'package:quickkart/features/cart/domain/cart_pricing.dart';
 import 'package:quickkart/features/cart/presentation/cart_screen.dart';
 import 'package:quickkart/mock_server/mock_server.dart';
 
@@ -29,8 +28,15 @@ Future<void> pumpCartScreen(
       child: const MaterialApp(home: CartScreen()),
     ));
 
-Future<void> seedCart(ProviderContainer container, MockServer server) async {
+/// Seeds the cart with the CURRENT server price, then applies the hike.
+/// Returns the price the cart was seeded with.
+Future<int> seedCartThenHike(
+  ProviderContainer container,
+  MockServer server,
+  int by,
+) async {
   final product = server.product('dairy-03'); // Farm Eggs ₹54
+  final oldPrice = product.pricePaise;
   await container.read(cartControllerProvider.notifier).replace(
         Cart(
           lines: [
@@ -39,30 +45,58 @@ Future<void> seedCart(ProviderContainer container, MockServer server) async {
               name: product.name,
               emoji: '🥚',
               unit: '6 pcs',
-              unitPricePaise: product.pricePaise,
+              unitPricePaise: oldPrice,
               quantity: 2,
               maxPerOrder: product.maxPerOrder,
             ),
           ],
         ),
       );
+  server.setPrice(product.id, oldPrice + by);
+  return oldPrice;
+}
+
+Future<int> seedCartThenCut(
+  ProviderContainer container,
+  MockServer server,
+  int by,
+) async {
+  final product = server.product('dairy-03');
+  final oldPrice = product.pricePaise;
+  await container.read(cartControllerProvider.notifier).replace(
+        Cart(
+          lines: [
+            CartLine(
+              productId: product.id,
+              name: product.name,
+              emoji: '🥚',
+              unit: '6 pcs',
+              unitPricePaise: oldPrice,
+              quantity: 2,
+              maxPerOrder: product.maxPerOrder,
+            ),
+          ],
+        ),
+      );
+  server.setPrice(product.id, oldPrice - by);
+  return oldPrice;
 }
 
 void main() {
   testWidgets('opening the cart after a price hike shows the change',
       (tester) async {
     final server = MockServer.inMemory();
-    server.setPrice('dairy-03', server.product('dairy-03').pricePaise + 500);
-
     final container = makeContainer(server);
     addTearDown(container.dispose);
-    await seedCart(container, server);
+
+    final oldPrice =
+        await seedCartThenHike(container, server, 500); // ₹54 → ₹59
     await pumpCartScreen(tester, container);
     await tester.pumpAndSettle();
 
-    // The tile reflects the server price and the change is explicit.
+    // The tile reflects the server price (inside "6 pcs  ₹59").
     expect(
-      find.text(formatPrice(server.product('dairy-03').pricePaise)),
+      find.textContaining(formatMoney(oldPrice + 500)),
       findsWidgets,
     );
     expect(
@@ -70,17 +104,21 @@ void main() {
       findsOneWidget,
       reason: 'a reviewable change must be surfaced, not applied silently',
     );
-    expect(find.textContaining('old'), findsWidgets);
+    expect(
+      find.textContaining(
+          'Farm Eggs: price ${formatMoney(oldPrice)} → ${formatMoney(oldPrice + 500)}'),
+      findsOneWidget,
+      reason: 'the user must see exactly what changed',
+    );
   });
 
   testWidgets('the review banner disappears when acknowledged',
       (tester) async {
     final server = MockServer.inMemory();
-    server.setPrice('dairy-03', server.product('dairy-03').pricePaise + 500);
-
     final container = makeContainer(server);
     addTearDown(container.dispose);
-    await seedCart(container, server);
+
+    await seedCartThenHike(container, server, 500);
     await pumpCartScreen(tester, container);
     await tester.pumpAndSettle();
 
@@ -93,21 +131,19 @@ void main() {
   testWidgets('a price drop is applied silently without a banner',
       (tester) async {
     final server = MockServer.inMemory();
-    server.setPrice('dairy-03', server.product('dairy-03').pricePaise - 500);
-
     final container = makeContainer(server);
     addTearDown(container.dispose);
-    await seedCart(container, server);
+
+    final oldPrice = await seedCartThenCut(container, server, 500);
     await pumpCartScreen(tester, container);
     await tester.pumpAndSettle();
 
     expect(find.text('Price & availability changed'), findsNothing);
     expect(
-      find.text(formatPrice(server.product('dairy-03').pricePaise)),
+      find.textContaining(formatMoney(oldPrice - 500)),
       findsWidgets,
       reason: 'the lower price must be applied to the cart silently',
     );
   });
 }
 
-String formatPrice(int paise) => formatMoney(paise);
