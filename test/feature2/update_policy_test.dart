@@ -61,13 +61,15 @@ void main() {
     });
 
     test('missing segments count as zero (1.4 == 1.4.0)', () {
+      // 1.4.0 equals the minimum (1.4.0) so it is not blocked, but is below
+      // the latest (2.0.0): optional.
       expect(
         UpdatePolicy.evaluate(
           currentVersion: '1.4',
           minSupportedVersion: '1.4.0',
           latestVersion: '2.0',
         ),
-        UpdateRequirement.none,
+        UpdateRequirement.optional,
       );
       expect(
         UpdatePolicy.evaluate(
