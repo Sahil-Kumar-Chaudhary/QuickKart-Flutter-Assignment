@@ -166,6 +166,20 @@
 - **Test:** `test/bugs/category_screen_leak_test.dart` → `category screen detaches config listener on dispose`
 - **Commits:** test `4d8837c` → fix `2421533`
 
+---
+
+## BUG-13: Coupon below the minimum blocks checkout
+
+- **Symptom:** A cart with a coupon below its minimum order shows a server error (`MIN_ORDER_NOT_MET`) and can't place the order, even though the coupon gives zero discount.
+- **Steps to reproduce:**
+  1. Add a single product with a low subtotal.
+  2. Apply a coupon whose minimum is higher than the subtotal.
+  3. Checkout.
+- **Root cause:** `OrderApi.placeOrder` always sent `couponCode`, even when the local pricing obtained zero discount because the cart was below the minimum, so the server rejected the order.
+- **Fix:** Only send `couponCode` when the local cart's own pricing actually gives a discount. Below the minimum, the coupon stays in the local cart but is left out of the order.
+- **Test:** `test/bugs/coupon_below_minimum_test.dart` → `a coupon below the minimum is omitted from the request`
+- **Commits:** test `2e269d2` → fix `633241c`
+
 <!-- Copy the block above for every bug you find. -->
 
 ---
