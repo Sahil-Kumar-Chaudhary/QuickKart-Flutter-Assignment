@@ -72,6 +72,19 @@
 - **Test:** `test/bugs/money_display_test.dart` → `1999 paise is shown as ₹19.99`, `1950 paise is shown as ₹19.50`, `whole rupees do not show .00`
 - **Commits:** test `bffe23f` → fix `6099d42`
 
+---
+
+## BUG-6: Cart at exactly ₹199 still pays the delivery fee
+
+- **Symptom:** A subtotal of exactly ₹199 shows a delivery fee locally; the same order is free on the server. `amountForFreeDelivery` also shows ₹0 instead of the true gap.
+- **Steps to reproduce:**
+  1. Build a cart whose subtotal is 19900 paise.
+  2. Run `CartPricing.compute` with default config.
+- **Root cause:** `CartPricing.compute` used `payable > threshold` while BUSINESS_RULES and the server use `payable >= threshold`.
+- **Fix:** Make the free-delivery comparison inclusive (payable >= threshold ⇒ fee 0). Then the existing "large cart" test still passes.
+- **Test:** `test/bugs/free_delivery_threshold_test.dart` → `a cart of exactly ₹199 gets free delivery`
+- **Commits:** test `21f06e2` → fix `c33d6d9`
+
 <!-- Copy the block above for every bug you find. -->
 
 ---
