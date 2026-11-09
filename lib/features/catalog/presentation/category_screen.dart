@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,6 +21,7 @@ class CategoryScreen extends ConsumerStatefulWidget {
 
 class _CategoryScreenState extends ConsumerState<CategoryScreen> {
   late int _freeDeliveryThresholdPaise;
+  final List<StreamSubscription<int>> _subscriptions = [];
 
   @override
   void initState() {
@@ -28,12 +31,24 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
 
     // Marketing changes the free-delivery threshold during sales; keep the
     // strip on this screen up to date without a restart.
-    ref.read(configRepositoryProvider).remoteUpdates.listen((_) async {
-      final config = await ref.read(configRepositoryProvider).load();
-      setState(() {
-        _freeDeliveryThresholdPaise = config.freeDeliveryThresholdPaise;
-      });
-    });
+    _subscriptions.add(
+      ref.read(configRepositoryProvider).remoteUpdates.listen((_) async {
+        final config = await ref.read(configRepositoryProvider).load();
+        if (!mounted) return;
+        setState(() {
+          _freeDeliveryThresholdPaise = config.freeDeliveryThresholdPaise;
+        });
+      }),
+    );
+  }
+
+  @override
+  void dispose() {
+    for (final sub in _subscriptions) {
+      sub.cancel();
+    }
+    _subscriptions.clear();
+    super.dispose();
   }
 
   @override

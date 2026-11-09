@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quickkart/core/providers.dart';
-import 'package:quickkart/core/storage/key_value_store.dart';
 import 'package:quickkart/features/catalog/domain/product.dart';
 import 'package:quickkart/features/catalog/presentation/category_screen.dart';
 import 'package:quickkart/mock_server/mock_server.dart';
