@@ -85,6 +85,19 @@
 - **Test:** `test/bugs/free_delivery_threshold_test.dart` → `a cart of exactly ₹199 gets free delivery`
 - **Commits:** test `21f06e2` → fix `c33d6d9`
 
+---
+
+## BUG-7: Legacy products crash the catalog while loading
+
+- **Symptom:** `dairy-00`, `dairy-02` and `snacks-09` (`mrp: null`, string `stock`) throw a `TypeError` before any product screen renders, and the screen is stuck loading.
+- **Steps to reproduce:**
+  1. Open the app with the legacy products enabled (Dev tools → product flags do not matter, they are always in the deal mix).
+  2. Receive a legacy product from the API.
+- **Root cause:** `ProductDto.fromJson` cast `mrp` to a non-nullable `num` and `stock` directly to `int`; legacy responses violate both, throwing `Null is not a subtype of num` / `String is not a subtype of int` under the catalog controller's catch-all.
+- **Fix:** Fall back to the price when `mrp` is null (no fake discount) and parse `stock` via `int.tryParse` with a 0 fallback.
+- **Test:** `test/bugs/product_dto_legacy_test.dart` → `a legacy product with mrp null and a string stock is parsed`, `a legacy product with no MRP shows no fake discount`, `current-style products still parse`
+- **Commits:** test `7e5c65b` → fix `24e1ccd`
+
 <!-- Copy the block above for every bug you find. -->
 
 ---
