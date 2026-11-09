@@ -98,6 +98,20 @@
 - **Test:** `test/bugs/product_dto_legacy_test.dart` → `a legacy product with mrp null and a string stock is parsed`, `a legacy product with no MRP shows no fake discount`, `current-style products still parse`
 - **Commits:** test `7e5c65b` → fix `24e1ccd`
 
+---
+
+## BUG-8: A cached fruit page is served as the snacks page offline
+
+- **Symptom:** After the network drops on one category, opening a different category returns the previously cached page as if it were that category's products.
+- **Steps to reproduce:**
+  1. Open the fruits category while online.
+  2. Turn off the network.
+  3. Open the snacks category while offline.
+- **Root cause:** `CatalogRepository.getPage()` built the cache key as `page.${cursor ?? 'first'}`, ignoring `categoryId` and `limit`, so every first page shared one key.
+- **Fix:** Compose the cache key from `categoryId`, cursor and `limit`.
+- **Test:** `test/bugs/catalog_cache_key_test.dart` → `offline pages are keyed by category, not cursor alone (A8)`
+- **Commits:** test `260ad79` → fix `58e5640`
+
 <!-- Copy the block above for every bug you find. -->
 
 ---
