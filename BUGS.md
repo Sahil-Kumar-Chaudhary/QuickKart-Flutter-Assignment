@@ -112,6 +112,20 @@
 - **Test:** `test/bugs/catalog_cache_key_test.dart` → `offline pages are keyed by category, not cursor alone (A8)`
 - **Commits:** test `260ad79` → fix `58e5640`
 
+---
+
+## BUG-9: Rapid cart taps lose updates
+
+- **Symptom:** Tapping `+` five times in a row sometimes results in a cart of 1–2 items instead of 5. Tapping `-` twice on one item can leave qty 1 in the cart.
+- **Steps to reproduce:**
+  1. Add a product to the cart.
+  2. Tap `+` quickly several times.
+  3. Reopen the cart or restart the app.
+- **Root cause:** `add()`/`increment()` computed a new cart from `state`, then awaited `_storage.save()` before assigning `state`. A second tap could run concurrently on the stale in-memory state and later overwrite the first result.
+- **Fix:** All cart mutations are dispatched through a single serialized write chain (`_commit`). Each operation sees the committed result of the previous one.
+- **Test:** `test/bugs/cart_rapid_taps_test.dart` → `five rapid taps add four products the app remembers`, `two rapid decrements remove the quantity down to zero`
+- **Commits:** test `93c5352` → fix `c41c407`
+
 <!-- Copy the block above for every bug you find. -->
 
 ---
