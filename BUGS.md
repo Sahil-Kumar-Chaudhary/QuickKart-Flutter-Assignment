@@ -126,6 +126,19 @@
 - **Test:** `test/bugs/cart_rapid_taps_test.dart` → `five rapid taps add four products the app remembers`, `two rapid decrements remove the quantity down to zero`
 - **Commits:** test `93c5352` → fix `c41c407`
 
+---
+
+## BUG-10: Double-tapping load-more duplicates a page
+
+- **Symptom:** Scrolling near the end can trigger two concurrent `loadMore()` calls that append the same page twice, showing duplicated rows.
+- **Steps to reproduce:**
+  1. Open a category with a next page.
+  2. Fire load-more twice (or tap fast).
+- **Root cause:** `loadMore()` only checked `hasMore` and never observe `isLoadingMore` nor `nextCursor` stability. It also did not remember the last requested cursor.
+- **Fix:** Skip load-more while first page/refresh/loadMore is in flight, track the last requested cursor, and drop a second call with the same cursor; reset that cursor on error so retry is possible.
+- **Test:** `test/bugs/load_more_guard_test.dart` → `two simultaneous loadMore calls fetch the page once`
+- **Commits:** test `82db5d9` → fix `fce842e`
+
 <!-- Copy the block above for every bug you find. -->
 
 ---
