@@ -15,22 +15,45 @@ class OrderApi {
 
   final ApiClient _client;
 
+  /// The exact request body for `POST /v1/orders`.
+  ///
+  /// Single source of truth: [placeOrder] sends this and the checkout
+  /// controller fingerprints the same JSON for idempotency-key reuse.
+  Map<String, dynamic> requestBody(Cart cart, CartPricing pricing) => {
+        'items': [
+          for (final l in cart.lines)
+            {
+              'productId': l.productId,
+              'quantity': l.quantity,
+              'unitPricePaise': l.unitPricePaise,
+            }
+        ],
+        // A coupon that is not actually discounting (e.g. below its
+        // minimum) stays in the local cart but is not sent.
+        'couponCode': cart.coupon == null || pricing.discountPaise <= 0
+            ? null
+            : cart.coupon?.code,
+        'expectedTotalPaise': pricing.totalPaise,
+      };
+
   /// `POST /v1/orders`. See API_CONTRACT.md for the error codes.
-  Future<Order> placeOrder(Cart cart, CartPricing pricing) async {
-    final json = await _client.post('/v1/orders', body: {
-      'items': [
-        for (final l in cart.lines)
-          {
-            'productId': l.productId,
-            'quantity': l.quantity,
-            'unitPricePaise': l.unitPricePaise,
-          }
-      ],
-      'couponCode': cart.coupon == null || pricing.discountPaise <= 0
-          ? null
-          : cart.coupon?.code,
-      'expectedTotalPaise': pricing.totalPaise,
-    }) as Map<String, dynamic>;
+  ///
+  /// [idempotencyKey] (`Idempotency-Key` header) makes the order safe to
+  /// retry: the server deduplicates on it, so a lost response or a retry
+  /// after a timeout returns the original order instead of creating a
+  /// second one.
+  Future<Order> placeOrder(
+    Cart cart,
+    CartPricing pricing, {
+    String? idempotencyKey,
+  }) async {
+    final json = await _client.post(
+      '/v1/orders',
+      body: requestBody(cart, pricing),
+      headers: {
+        if (idempotencyKey != null) 'idempotency-key': idempotencyKey,
+      },
+    ) as Map<String, dynamic>;
     return Order.fromJson(json);
   }
 

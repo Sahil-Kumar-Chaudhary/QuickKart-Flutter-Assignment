@@ -3,7 +3,6 @@
 // * every amount the user hasn't seen blocks the order for review
 // * store closed => no request
 // * honest messages for offline / timeout
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quickkart/core/network/api_client.dart';
 import 'package:quickkart/core/providers.dart';
